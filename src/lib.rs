@@ -79,13 +79,13 @@ mod tests {
         assert_eq!(
             tokenizer("432").unwrap(),
             vec![Token::Number(432)],
-            "Parses numbers"
+            "Tokenizes numbers"
         );
 
         assert_eq!(
             tokenizer("()").unwrap(),
             vec![Token::Parentheses('('), Token::Parentheses(')')],
-            "Parses parentheses"
+            "Tokenizes parentheses"
         );
 
         let input = "-4 * -3";
@@ -94,17 +94,17 @@ mod tests {
         assert_eq!(
             output[2],
             Token::BinaryOperator('*'),
-            "Parses binary operators"
+            "Tokenizes binary operators"
         );
         assert_eq!(
             output[0],
             Token::UnaryOperator('-'),
-            "Parses unary operators at the start of the input"
+            "Tokenizes unary operators at the start of the input"
         );
         assert_eq!(
             output[3],
             Token::UnaryOperator('-'),
-            "Parses unary operators in the middle of the input"
+            "Tokenizes unary operators in the middle of the input"
         );
 
         assert_eq!(
@@ -122,7 +122,7 @@ mod tests {
                 Token::Number(8),
                 Token::Parentheses(')'),
             ],
-            "Parses a full input"
+            "Tokenizes a full input"
         )
     }
 }
