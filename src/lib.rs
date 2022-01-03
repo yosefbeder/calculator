@@ -4,6 +4,7 @@ enum Token {
     BinaryOperator(char),
     UnaryOperator(char),
     Parentheses(char),
+    End,
 }
 
 fn tokenizer(input: &str) -> Result<Vec<Token>, String> {
@@ -67,6 +68,8 @@ fn tokenizer(input: &str) -> Result<Vec<Token>, String> {
         }
     }
 
+    tokens.push(Token::End);
+
     Ok(tokens)
 }
 
@@ -78,13 +81,13 @@ mod tests {
     fn tokenizer_tests() {
         assert_eq!(
             tokenizer("432").unwrap(),
-            vec![Token::Number(432)],
+            vec![Token::Number(432), Token::End],
             "Tokenizes numbers"
         );
 
         assert_eq!(
             tokenizer("()").unwrap(),
-            vec![Token::Parentheses('('), Token::Parentheses(')')],
+            vec![Token::Parentheses('('), Token::Parentheses(')'), Token::End],
             "Tokenizes parentheses"
         );
 
@@ -121,6 +124,7 @@ mod tests {
                 Token::BinaryOperator('+'),
                 Token::Number(8),
                 Token::Parentheses(')'),
+                Token::End,
             ],
             "Tokenizes a full input"
         )
