@@ -117,6 +117,36 @@ enum Node {
     Single(i32),
 }
 
+impl Node {
+    fn calc(&self) -> i32 {
+        match self {
+            Node::Single(n) => return *n,
+            Node::Unary(op, node) => match op {
+                UnaryOperator::Negative => {
+                    return node.calc() * -1;
+                }
+            },
+            Node::Binary(op, node0, node1) => match op {
+                BinaryOperator::Addition => {
+                    return node0.calc() + node1.calc();
+                }
+                BinaryOperator::Subtraction => {
+                    return node0.calc() - node1.calc();
+                }
+                BinaryOperator::Division => {
+                    return node0.calc() / node1.calc();
+                }
+                BinaryOperator::Multiplication => {
+                    return node0.calc() * node1.calc();
+                }
+                BinaryOperator::Exponentiation => {
+                    return node0.calc().pow(node1.calc().try_into().unwrap());
+                }
+            },
+        }
+    }
+}
+
 fn parse_E(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
     let (t0, next_tokens) = parse_T(tokens)?;
     let mut last_tokens = next_tokens;
@@ -212,9 +242,11 @@ fn parser(tokens: &[Token]) -> Result<Node, &[Token]> {
     Ok(t)
 }
 
-pub fn calc(input: &str) {
+pub fn calc(input: &str) -> i32 {
     let tokens = tokenizer(input).unwrap();
-    let ast = parser(&tokens).unwrap();
+    let root_node = parser(&tokens).unwrap();
+
+    return root_node.calc();
 }
 
 #[cfg(test)]
@@ -377,5 +409,10 @@ mod tests {
         );
 
         assert_eq!(parser(&tokens), Ok(ast));
+    }
+
+    #[test]
+    fn calc_tests() {
+        assert_eq!(calc("-3 + 7 * 2 ^ 2"), 25);
     }
 }
