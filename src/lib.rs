@@ -308,90 +308,125 @@ mod tests {
     }
 
     #[test]
-    fn parser_components_tests() {
-        let tokens = vec![Token::Dash, Token::Number(3)];
-
+    fn parser_tests() {
+        let tokens = vec![Token::Number(3), Token::End];
         assert_eq!(
-            parse_P(&tokens),
-            Ok((
-                Node::Unary(UnaryOperator::Negative, Box::new(Node::Single(3))),
-                &tokens[2..]
+            parser(&tokens),
+            Ok(Node::Single(3)),
+            "Parses P (single digits)"
+        );
+
+        let tokens = vec![Token::Dash, Token::Number(3), Token::End];
+        assert_eq!(
+            parser(&tokens),
+            Ok(Node::Unary(
+                UnaryOperator::Negative,
+                Box::new(Node::Single(3))
             )),
-            "Parses single digits and negative numbers"
+            "Parses P (negative numbers)"
+        );
+
+        let tokens = vec![
+            Token::LeftParenthese,
+            Token::Number(3),
+            Token::RightParenthese,
+            Token::End,
+        ];
+        assert_eq!(
+            parser(&tokens),
+            Ok(Node::Single(3)),
+            "Parses P (expressions wrapped with parentheses)"
+        );
+
+        let tokens = vec![Token::Number(3), Token::Caret, Token::Number(2), Token::End];
+        assert_eq!(
+            parser(&tokens),
+            Ok(Node::Binary(
+                BinaryOperator::Exponentiation,
+                Box::new(Node::Single(3)),
+                Box::new(Node::Single(2))
+            )),
+            "Parses F (operands are single digits)"
         );
 
         let tokens = vec![
             Token::Number(3),
             Token::Caret,
-            Token::Dash,
             Token::Number(2),
+            Token::Caret,
+            Token::Number(2),
+            Token::End,
         ];
-
         assert_eq!(
-            parse_F(&tokens),
-            Ok((
-                Node::Binary(
+            parser(&tokens),
+            Ok(Node::Binary(
+                BinaryOperator::Exponentiation,
+                Box::new(Node::Single(3)),
+                Box::new(Node::Binary(
                     BinaryOperator::Exponentiation,
-                    Box::new(Node::Single(3),),
-                    Box::new(Node::Unary(
-                        UnaryOperator::Negative,
-                        Box::new(Node::Single(2))
-                    ))
-                ),
-                &tokens[4..]
-            ),),
-        );
-
-        let tokens = vec![Token::Number(3), Token::Asterisk, Token::Number(5)];
-
-        assert_eq!(
-            parse_T(&tokens),
-            Ok((
-                Node::Binary(
-                    BinaryOperator::Multiplication,
-                    Box::new(Node::Single(3)),
-                    Box::new(Node::Single(5)),
-                ),
-                &tokens[3..]
-            ),),
+                    Box::new(Node::Single(2)),
+                    Box::new(Node::Single(2))
+                )),
+            )),
+            "Parses F (operands are F too)"
         );
 
         let tokens = vec![
             Token::Number(2),
-            Token::Plus,
-            Token::Number(3),
             Token::Asterisk,
             Token::Number(5),
+            Token::Slash,
+            Token::Number(3),
+            Token::End,
         ];
 
         assert_eq!(
-            parse_E(&tokens),
-            Ok((
-                Node::Binary(
+            parser(&tokens),
+            Ok(Node::Binary(
+                BinaryOperator::Division,
+                Box::new(Node::Binary(
+                    BinaryOperator::Multiplication,
+                    Box::new(Node::Single(2)),
+                    Box::new(Node::Single(5)),
+                )),
+                Box::new(Node::Single(3)),
+            )),
+            "Parses T (operands aren't single nodes)"
+        );
+
+        let tokens = vec![
+            Token::Number(2),
+            Token::Plus,
+            Token::Number(5),
+            Token::Dash,
+            Token::Number(3),
+            Token::End,
+        ];
+
+        assert_eq!(
+            parser(&tokens),
+            Ok(Node::Binary(
+                BinaryOperator::Subtraction,
+                Box::new(Node::Binary(
                     BinaryOperator::Addition,
                     Box::new(Node::Single(2)),
-                    Box::new(Node::Binary(
-                        BinaryOperator::Multiplication,
-                        Box::new(Node::Single(3)),
-                        Box::new(Node::Single(5)),
-                    ))
-                ),
-                &tokens[5..]
-            ),),
-        )
-    }
+                    Box::new(Node::Single(5)),
+                )),
+                Box::new(Node::Single(3)),
+            )),
+            "Parses E (operands aren't single nodes)"
+        );
 
-    #[test]
-    fn parser_tests() {
-        // -3 + 7 * 2 ^ 2
-
+        // -3 + (7 * 2) ^ 2
         let tokens = vec![
             Token::Dash,
             Token::Number(3),
             Token::Plus,
+            Token::LeftParenthese,
             Token::Number(7),
             Token::Asterisk,
             Token::Number(2),
+            Token::RightParenthese,
             Token::Caret,
             Token::Number(2),
             Token::End,
@@ -403,17 +438,17 @@ mod tests {
                 Box::new(Node::Single(3)),
             )),
             Box::new(Node::Binary(
-                BinaryOperator::Multiplication,
-                Box::new(Node::Single(7)),
+                BinaryOperator::Exponentiation,
                 Box::new(Node::Binary(
-                    BinaryOperator::Exponentiation,
-                    Box::new(Node::Single(2)),
+                    BinaryOperator::Multiplication,
+                    Box::new(Node::Single(7)),
                     Box::new(Node::Single(2)),
                 )),
+                Box::new(Node::Single(2)),
             )),
         );
 
-        assert_eq!(parser(&tokens), Ok(ast));
+        assert_eq!(parser(&tokens), Ok(ast), "Parses a full example");
     }
 
     #[test]
