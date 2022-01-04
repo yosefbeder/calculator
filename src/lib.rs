@@ -1,10 +1,44 @@
+const SPECIAL_CHARACTERS: [char; 7] = ['(', ')', '+', '-', '*', '/', '^'];
+
 #[derive(Debug, PartialEq)]
 enum Token {
     Number(i32),
-    BinaryOperator(char),
-    UnaryOperator(char),
-    Parentheses(char),
+    Plus,
+    Dash,
+    Asterisk,
+    Slash,
+    Caret,
+    LeftParenthese,
+    RightParenthese,
     End,
+}
+
+impl Token {
+    fn new(c: char) -> Result<Self, String> {
+        if c == '(' {
+            return Ok(Token::LeftParenthese);
+        };
+        if c == ')' {
+            return Ok(Token::RightParenthese);
+        };
+        if c == '*' {
+            return Ok(Token::Asterisk);
+        };
+        if c == '/' {
+            return Ok(Token::Slash);
+        };
+        if c == '^' {
+            return Ok(Token::Caret);
+        };
+        if c == '+' {
+            return Ok(Token::Plus);
+        };
+        if c == '-' {
+            return Ok(Token::Dash);
+        };
+
+        Err(format!("Failed to create a token from {}", c))
+    }
 }
 
 fn tokenizer(input: &str) -> Result<Vec<Token>, String> {
@@ -14,13 +48,11 @@ fn tokenizer(input: &str) -> Result<Vec<Token>, String> {
 
     while current < chars.len() {
         if let Some(c) = chars.get(current) {
-            // whitespaces
             if c.is_whitespace() {
                 current += 1;
                 continue;
             }
 
-            // numbers
             if c.is_numeric() {
                 let mut value = String::new();
 
@@ -37,29 +69,13 @@ fn tokenizer(input: &str) -> Result<Vec<Token>, String> {
                 continue;
             }
 
-            // parentheses
-            if *c == '(' || *c == ')' {
-                tokens.push(Token::Parentheses(*c));
-                current += 1;
-                continue;
-            }
-
-            // - operator
-            if *c == '-' {
-                match tokens.iter().last() {
-                    Some(value) => match value {
-                        Token::Number(_) => tokens.push(Token::BinaryOperator(*c)),
-                        _ => tokens.push(Token::UnaryOperator(*c)),
-                    },
-                    None => tokens.push(Token::UnaryOperator(*c)),
+            if SPECIAL_CHARACTERS.contains(c) {
+                match Token::new(*c) {
+                    Ok(token) => {
+                        tokens.push(token);
+                    }
+                    Err(err) => return Err(err),
                 }
-                current += 1;
-                continue;
-            }
-
-            // binary operators
-            if ['+', '*', '/', '^'].contains(c) {
-                tokens.push(Token::BinaryOperator(*c));
                 current += 1;
                 continue;
             }
@@ -71,6 +87,10 @@ fn tokenizer(input: &str) -> Result<Vec<Token>, String> {
     tokens.push(Token::End);
 
     Ok(tokens)
+}
+
+pub fn calc(input: &str) {
+    let tokens = tokenizer(input);
 }
 
 #[cfg(test)]
@@ -87,26 +107,22 @@ mod tests {
 
         assert_eq!(
             tokenizer("()").unwrap(),
-            vec![Token::Parentheses('('), Token::Parentheses(')'), Token::End],
+            vec![Token::LeftParenthese, Token::RightParenthese, Token::End],
             "Tokenizes parentheses"
         );
 
         let input = "-4 * -3";
         let output = tokenizer(input).unwrap();
 
-        assert_eq!(
-            output[2],
-            Token::BinaryOperator('*'),
-            "Tokenizes binary operators"
-        );
+        assert_eq!(output[2], Token::Asterisk, "Tokenizes binary operators");
         assert_eq!(
             output[0],
-            Token::UnaryOperator('-'),
+            Token::Dash,
             "Tokenizes unary operators at the start of the input"
         );
         assert_eq!(
             output[3],
-            Token::UnaryOperator('-'),
+            Token::Dash,
             "Tokenizes unary operators in the middle of the input"
         );
 
@@ -114,16 +130,16 @@ mod tests {
             tokenizer("4 + 3 * 7 - (9 + 8)").unwrap(),
             vec![
                 Token::Number(4),
-                Token::BinaryOperator('+'),
+                Token::Plus,
                 Token::Number(3),
-                Token::BinaryOperator('*'),
+                Token::Asterisk,
                 Token::Number(7),
-                Token::BinaryOperator('-'),
-                Token::Parentheses('('),
+                Token::Dash,
+                Token::LeftParenthese,
                 Token::Number(9),
-                Token::BinaryOperator('+'),
+                Token::Plus,
                 Token::Number(8),
-                Token::Parentheses(')'),
+                Token::RightParenthese,
                 Token::End,
             ],
             "Tokenizes a full input"
