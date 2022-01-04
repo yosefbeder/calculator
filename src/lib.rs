@@ -42,46 +42,43 @@ impl Token {
 }
 
 fn tokenizer(input: &str) -> Result<Vec<Token>, String> {
-    let chars: Vec<char> = input.chars().collect();
+    let mut left_input = input;
     let mut tokens = vec![];
-    let mut current = 0;
 
-    while current < chars.len() {
-        if let Some(c) = chars.get(current) {
-            if c.is_whitespace() {
-                current += 1;
-                continue;
-            }
-
-            if c.is_numeric() {
-                let mut value = String::new();
-
-                while let Some(c) = chars.get(current) {
-                    if c.is_numeric() {
-                        value.push(*c);
-                        current += 1;
-                    } else {
-                        break;
-                    }
-                }
-
-                tokens.push(Token::Number(value.parse().unwrap()));
-                continue;
-            }
-
-            if SPECIAL_CHARACTERS.contains(c) {
-                match Token::new(*c) {
-                    Ok(token) => {
-                        tokens.push(token);
-                    }
-                    Err(err) => return Err(err),
-                }
-                current += 1;
-                continue;
-            }
-
-            return Err(format!("[tokenizer]: Unexpected character {}", c));
+    while let Some(ch) = left_input.chars().next() {
+        if ch.is_whitespace() {
+            left_input = &left_input[ch.len_utf8()..];
+            continue;
         }
+
+        if ch.is_numeric() {
+            let mut value = String::new();
+
+            while let Some(ch) = left_input.chars().next() {
+                if ch.is_numeric() {
+                    value.push(ch);
+                    left_input = &left_input[ch.len_utf8()..];
+                } else {
+                    break;
+                }
+            }
+
+            tokens.push(Token::Number(value.parse().unwrap()));
+            continue;
+        }
+
+        if SPECIAL_CHARACTERS.contains(&ch) {
+            match Token::new(ch) {
+                Ok(token) => {
+                    tokens.push(token);
+                }
+                Err(err) => return Err(err),
+            }
+            left_input = &left_input[ch.len_utf8()..];
+            continue;
+        }
+
+        return Err(format!("[tokenizer]: Unexpected character {}", ch));
     }
 
     tokens.push(Token::End);
