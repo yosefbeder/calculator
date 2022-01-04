@@ -225,10 +225,15 @@ fn parse_P(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
         ));
     }
 
+    if let Some(Token::LeftParenthese) = tokens.iter().next() {
+        let (t, next_tokens) = parse_E(&tokens[1..])?;
+        return Ok((t, expect(Token::RightParenthese, next_tokens)?));
+    }
+
     Err(tokens)
 }
 
-fn expect<'a>(expected_token: &Token, tokens: &'a [Token]) -> Result<&'a [Token], &'a [Token]> {
+fn expect<'a>(expected_token: Token, tokens: &'a [Token]) -> Result<&'a [Token], &'a [Token]> {
     if let Some(expected_token) = tokens.iter().next() {
         Ok(&tokens[1..])
     } else {
@@ -238,7 +243,7 @@ fn expect<'a>(expected_token: &Token, tokens: &'a [Token]) -> Result<&'a [Token]
 
 fn parser(tokens: &[Token]) -> Result<Node, &[Token]> {
     let (t, last_tokens) = parse_E(tokens)?;
-    expect(&Token::End, last_tokens)?;
+    expect(Token::End, last_tokens)?;
     Ok(t)
 }
 
@@ -414,5 +419,6 @@ mod tests {
     #[test]
     fn calc_tests() {
         assert_eq!(calc("-3 + 7 * 2 ^ 2"), 25);
+        assert_eq!(calc("-3 + (7 * 2) ^ 2"), 193);
     }
 }
