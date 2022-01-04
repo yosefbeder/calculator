@@ -86,8 +86,135 @@ fn tokenizer(input: &str) -> Result<Vec<Token>, String> {
     Ok(tokens)
 }
 
+/*
+    GRAMMAR
+        E -> T {("+" | "-") T}
+        T -> F {("*" | "/") F}
+        F -> P ["^" F]
+        P -> v | "(" E ")" | "-" P
+*/
+
+// each one is supposed to return the node it parsed along with the rest of the tokens (Node, &[Token])
+
+#[derive(Debug, PartialEq)]
+enum BinaryOperator {
+    Addition,
+    Subtraction,
+    Division,
+    Multiplication,
+    Exponentiation,
+}
+
+#[derive(Debug, PartialEq)]
+enum UnaryOperator {
+    Negative,
+}
+
+#[derive(Debug, PartialEq)]
+enum Node {
+    Binary(BinaryOperator, Box<Node>, Box<Node>),
+    Unary(UnaryOperator, Box<Node>),
+    Single(i32),
+}
+
+fn parse_E(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
+    let (t0, next_tokens) = parse_T(tokens)?;
+    let mut last_tokens = next_tokens;
+    let mut t = t0;
+
+    while let Some(token) = last_tokens.iter().next() {
+        match token {
+            Token::Plus => {
+                let (t1, next_tokens) = parse_T(&last_tokens[1..])?;
+                last_tokens = next_tokens;
+
+                t = Node::Binary(BinaryOperator::Addition, Box::new(t), Box::new(t1));
+            }
+            Token::Dash => {
+                let (t1, next_tokens) = parse_T(&last_tokens[1..])?;
+                last_tokens = next_tokens;
+
+                t = Node::Binary(BinaryOperator::Subtraction, Box::new(t), Box::new(t1));
+            }
+            _ => break,
+        }
+    }
+
+    Ok((t, last_tokens))
+}
+
+fn parse_T(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
+    let (t0, next_tokens) = parse_F(tokens)?;
+    let mut last_tokens = next_tokens;
+    let mut t = t0;
+
+    while let Some(token) = last_tokens.iter().next() {
+        match token {
+            Token::Asterisk => {
+                let (t1, next_tokens) = parse_F(&last_tokens[1..])?;
+                last_tokens = next_tokens;
+
+                t = Node::Binary(BinaryOperator::Multiplication, Box::new(t), Box::new(t1));
+            }
+            Token::Slash => {
+                let (t1, next_tokens) = parse_F(&last_tokens[1..])?;
+                last_tokens = next_tokens;
+
+                t = Node::Binary(BinaryOperator::Division, Box::new(t), Box::new(t1));
+            }
+            _ => break,
+        }
+    }
+
+    Ok((t, last_tokens))
+}
+
+fn parse_F(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
+    let (t0, next_tokens) = parse_P(tokens)?;
+
+    if let Some(Token::Caret) = next_tokens.iter().next() {
+        let (t1, next_tokens) = parse_F(&next_tokens[1..])?;
+        Ok((
+            Node::Binary(BinaryOperator::Exponentiation, Box::new(t0), Box::new(t1)),
+            next_tokens,
+        ))
+    } else {
+        Ok((t0, next_tokens))
+    }
+}
+
+fn parse_P(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
+    if let Some(Token::Number(n)) = tokens.iter().next() {
+        return Ok((Node::Single(*n), &tokens[1..]));
+    }
+
+    if let Some(Token::Dash) = tokens.iter().next() {
+        return Ok((
+            Node::Unary(UnaryOperator::Negative, Box::new(parse_P(&tokens[1..])?.0)),
+            &tokens[2..],
+        ));
+    }
+
+    Err(tokens)
+}
+
+fn expect<'a>(expected_token: &Token, tokens: &'a [Token]) -> Result<&'a [Token], &'a [Token]> {
+    if let Some(expected_token) = tokens.iter().next() {
+        Ok(&tokens[1..])
+    } else {
+        Err(tokens)
+    }
+}
+
+fn parser(tokens: &[Token]) -> Result<Node, &[Token]> {
+    let (t, last_tokens) = parse_E(tokens)?;
+    expect(&Token::End, last_tokens)?;
+    Ok(t)
+}
+
 pub fn calc(input: &str) {
-    let tokens = tokenizer(input);
+    let tokens = tokenizer(input).unwrap();
+    let ast = parser(&tokens).unwrap();
 }
 
 #[cfg(test)]
@@ -141,5 +268,114 @@ mod tests {
             ],
             "Tokenizes a full input"
         )
+    }
+
+    #[test]
+    fn parser_components_tests() {
+        let tokens = vec![Token::Dash, Token::Number(3)];
+
+        assert_eq!(
+            parse_P(&tokens),
+            Ok((
+                Node::Unary(UnaryOperator::Negative, Box::new(Node::Single(3))),
+                &tokens[2..]
+            )),
+            "Parses single digits and negative numbers"
+        );
+
+        let tokens = vec![
+            Token::Number(3),
+            Token::Caret,
+            Token::Dash,
+            Token::Number(2),
+        ];
+
+        assert_eq!(
+            parse_F(&tokens),
+            Ok((
+                Node::Binary(
+                    BinaryOperator::Exponentiation,
+                    Box::new(Node::Single(3),),
+                    Box::new(Node::Unary(
+                        UnaryOperator::Negative,
+                        Box::new(Node::Single(2))
+                    ))
+                ),
+                &tokens[4..]
+            ),),
+        );
+
+        let tokens = vec![Token::Number(3), Token::Asterisk, Token::Number(5)];
+
+        assert_eq!(
+            parse_T(&tokens),
+            Ok((
+                Node::Binary(
+                    BinaryOperator::Multiplication,
+                    Box::new(Node::Single(3)),
+                    Box::new(Node::Single(5)),
+                ),
+                &tokens[3..]
+            ),),
+        );
+
+        let tokens = vec![
+            Token::Number(2),
+            Token::Plus,
+            Token::Number(3),
+            Token::Asterisk,
+            Token::Number(5),
+        ];
+
+        assert_eq!(
+            parse_E(&tokens),
+            Ok((
+                Node::Binary(
+                    BinaryOperator::Addition,
+                    Box::new(Node::Single(2)),
+                    Box::new(Node::Binary(
+                        BinaryOperator::Multiplication,
+                        Box::new(Node::Single(3)),
+                        Box::new(Node::Single(5)),
+                    ))
+                ),
+                &tokens[5..]
+            ),),
+        )
+    }
+
+    #[test]
+    fn parser_tests() {
+        // -3 + 7 * 2 ^ 2
+
+        let tokens = vec![
+            Token::Dash,
+            Token::Number(3),
+            Token::Plus,
+            Token::Number(7),
+            Token::Asterisk,
+            Token::Number(2),
+            Token::Caret,
+            Token::Number(2),
+            Token::End,
+        ];
+        let ast = Node::Binary(
+            BinaryOperator::Addition,
+            Box::new(Node::Unary(
+                UnaryOperator::Negative,
+                Box::new(Node::Single(3)),
+            )),
+            Box::new(Node::Binary(
+                BinaryOperator::Multiplication,
+                Box::new(Node::Single(7)),
+                Box::new(Node::Binary(
+                    BinaryOperator::Exponentiation,
+                    Box::new(Node::Single(2)),
+                    Box::new(Node::Single(2)),
+                )),
+            )),
+        );
+
+        assert_eq!(parser(&tokens), Ok(ast));
     }
 }
