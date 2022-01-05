@@ -148,68 +148,72 @@ impl Node {
 }
 
 fn parse_e(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
-    let (t0, next_tokens) = parse_t(tokens)?;
-    let mut last_tokens = next_tokens;
-    let mut t = t0;
+    let (mut node, mut next_tokens) = parse_t(tokens)?;
 
-    while let Some(token) = last_tokens.iter().next() {
+    while let Some(token) = next_tokens.iter().next() {
         match token {
             Token::Plus => {
-                let (t1, next_tokens) = parse_t(&last_tokens[1..])?;
-                last_tokens = next_tokens;
+                let (node1, next_tokens_1) = parse_t(&next_tokens[1..])?;
+                next_tokens = next_tokens_1;
 
-                t = Node::Binary(BinaryOperator::Addition, Box::new(t), Box::new(t1));
+                node = Node::Binary(BinaryOperator::Addition, Box::new(node), Box::new(node1));
             }
             Token::Dash => {
-                let (t1, next_tokens) = parse_t(&last_tokens[1..])?;
-                last_tokens = next_tokens;
+                let (node1, next_tokens_1) = parse_t(&next_tokens[1..])?;
+                next_tokens = next_tokens_1;
 
-                t = Node::Binary(BinaryOperator::Subtraction, Box::new(t), Box::new(t1));
+                node = Node::Binary(BinaryOperator::Subtraction, Box::new(node), Box::new(node1));
             }
             _ => break,
         }
     }
 
-    Ok((t, last_tokens))
+    Ok((node, next_tokens))
 }
 
 fn parse_t(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
-    let (t0, next_tokens) = parse_f(tokens)?;
-    let mut last_tokens = next_tokens;
-    let mut t = t0;
+    let (mut node, mut next_tokens) = parse_f(tokens)?;
 
-    while let Some(token) = last_tokens.iter().next() {
+    while let Some(token) = next_tokens.iter().next() {
         match token {
             Token::Asterisk => {
-                let (t1, next_tokens) = parse_f(&last_tokens[1..])?;
-                last_tokens = next_tokens;
+                let (node1, next_tokens_1) = parse_f(&next_tokens[1..])?;
+                next_tokens = next_tokens_1;
 
-                t = Node::Binary(BinaryOperator::Multiplication, Box::new(t), Box::new(t1));
+                node = Node::Binary(
+                    BinaryOperator::Multiplication,
+                    Box::new(node),
+                    Box::new(node1),
+                );
             }
             Token::Slash => {
-                let (t1, next_tokens) = parse_f(&last_tokens[1..])?;
-                last_tokens = next_tokens;
+                let (node1, next_tokens_1) = parse_f(&next_tokens[1..])?;
+                next_tokens = next_tokens_1;
 
-                t = Node::Binary(BinaryOperator::Division, Box::new(t), Box::new(t1));
+                node = Node::Binary(BinaryOperator::Division, Box::new(node), Box::new(node1));
             }
             _ => break,
         }
     }
 
-    Ok((t, last_tokens))
+    Ok((node, next_tokens))
 }
 
 fn parse_f(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
-    let (t0, next_tokens) = parse_p(tokens)?;
+    let (node, next_tokens) = parse_p(tokens)?;
 
     if let Some(Token::Caret) = next_tokens.iter().next() {
-        let (t1, next_tokens) = parse_f(&next_tokens[1..])?;
+        let (node1, next_tokens) = parse_f(&next_tokens[1..])?;
         Ok((
-            Node::Binary(BinaryOperator::Exponentiation, Box::new(t0), Box::new(t1)),
+            Node::Binary(
+                BinaryOperator::Exponentiation,
+                Box::new(node),
+                Box::new(node1),
+            ),
             next_tokens,
         ))
     } else {
-        Ok((t0, next_tokens))
+        Ok((node, next_tokens))
     }
 }
 
@@ -228,8 +232,8 @@ fn parse_p(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
     }
 
     if let Some(Token::LeftParenthese) = tokens.iter().next() {
-        let (t, next_tokens) = parse_e(&tokens[1..])?;
-        return Ok((t, expect(Token::RightParenthese, next_tokens)?));
+        let (node, next_tokens) = parse_e(&tokens[1..])?;
+        return Ok((node, expect(Token::RightParenthese, next_tokens)?));
     }
 
     Err(tokens)
@@ -244,16 +248,16 @@ fn expect<'a>(_expected_token: Token, tokens: &'a [Token]) -> Result<&'a [Token]
 }
 
 fn parser(tokens: &[Token]) -> Result<Node, &[Token]> {
-    let (t, last_tokens) = parse_e(tokens)?;
-    expect(Token::End, last_tokens)?;
-    Ok(t)
+    let (node, next_tokens) = parse_e(tokens)?;
+    expect(Token::End, next_tokens)?;
+    Ok(node)
 }
 
 pub fn calc(input: &str) -> i32 {
     let tokens = tokenizer(input).unwrap();
-    let root_node = parser(&tokens).unwrap();
+    let tree = parser(&tokens).unwrap();
 
-    return root_node.calc();
+    return tree.calc();
 }
 
 #[cfg(test)]
