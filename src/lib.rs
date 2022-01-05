@@ -219,9 +219,11 @@ fn parse_p(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
     }
 
     if let Some(Token::Dash) = tokens.iter().next() {
+        let (node, next_tokens) = parse_p(&tokens[1..])?;
+
         return Ok((
-            Node::Unary(UnaryOperator::Negative, Box::new(parse_p(&tokens[1..])?.0)),
-            &tokens[2..],
+            Node::Unary(UnaryOperator::Negative, Box::new(node)),
+            next_tokens,
         ));
     }
 
@@ -455,5 +457,6 @@ mod tests {
     fn calc_tests() {
         assert_eq!(calc("-3 + 7 * 2 ^ 2"), 25);
         assert_eq!(calc("-3 + (7 * 2) ^ 2"), 193);
+        assert_eq!(calc("-(7 * 2)"), -14);
     }
 }
