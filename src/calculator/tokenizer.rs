@@ -78,7 +78,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
       continue;
     }
 
-    return Err(format!("[tokenize]: Unexpected character {}", ch));
+    return Err(format!("Unexpected character: {}", ch));
   }
 
   tokens.push(Token::End);
@@ -134,5 +134,10 @@ mod tests {
         Token::End,
       ],
     )
+  }
+
+  #[test]
+  fn throws_meaningful_errors() {
+    assert_eq!(tokenize("4a"), Err(String::from("Unexpected character: a")))
   }
 }
