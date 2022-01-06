@@ -59,7 +59,7 @@ impl Node {
   }
 }
 
-fn parse_e(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
+fn parse_e(tokens: &[Token]) -> Result<(Node, &[Token]), String> {
   let (mut node, mut next_tokens) = parse_t(tokens)?;
 
   while let Some(token) = next_tokens.iter().next() {
@@ -83,7 +83,7 @@ fn parse_e(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
   Ok((node, next_tokens))
 }
 
-fn parse_t(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
+fn parse_t(tokens: &[Token]) -> Result<(Node, &[Token]), String> {
   let (mut node, mut next_tokens) = parse_f(tokens)?;
 
   while let Some(token) = next_tokens.iter().next() {
@@ -111,7 +111,7 @@ fn parse_t(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
   Ok((node, next_tokens))
 }
 
-fn parse_f(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
+fn parse_f(tokens: &[Token]) -> Result<(Node, &[Token]), String> {
   let (node, next_tokens) = parse_p(tokens)?;
 
   if let Some(Token::Caret) = next_tokens.iter().next() {
@@ -129,7 +129,7 @@ fn parse_f(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
   }
 }
 
-fn parse_p(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
+fn parse_p(tokens: &[Token]) -> Result<(Node, &[Token]), String> {
   if let Some(Token::Number(n)) = tokens.iter().next() {
     return Ok((Node::Single(*n), &tokens[1..]));
   }
@@ -145,21 +145,37 @@ fn parse_p(tokens: &[Token]) -> Result<(Node, &[Token]), &[Token]> {
 
   if let Some(Token::LeftParenthese) = tokens.iter().next() {
     let (node, next_tokens) = parse_e(&tokens[1..])?;
-    return Ok((node, expect(Token::RightParenthese, next_tokens)?));
+    let last_tokens = expect(Token::RightParenthese, next_tokens)?;
+    println!("{:?}", last_tokens);
+    return Ok((node, last_tokens));
   }
 
-  Err(tokens)
+  Err(format!("Expected a number (positive or negative) or an expression wrapped inside parentheses, but Instead, got {}", match tokens.iter().next() {
+        Some(token) => token.to_string(),
+        None => "nothing",
+      }))
 }
 
-fn expect<'a>(_expected_token: Token, tokens: &'a [Token]) -> Result<&'a [Token], &'a [Token]> {
-  if let Some(_expected_token) = tokens.iter().next() {
-    Ok(&tokens[1..])
+fn expect<'a>(expected_token: Token, tokens: &'a [Token]) -> Result<&'a [Token], String> {
+  if let Some(token) = tokens.iter().next() {
+    if *token == expected_token {
+      Ok(&tokens[1..])
+    } else {
+      Err(format!(
+        "Expected {}, but Instead, got {}",
+        expected_token.to_string(),
+        token.to_string(),
+      ))
+    }
   } else {
-    Err(tokens)
+    Err(format!(
+      "Expected {}, but Instead, got nothing",
+      expected_token.to_string(),
+    ))
   }
 }
 
-pub fn parse(tokens: &[Token]) -> Result<Node, &[Token]> {
+pub fn parse(tokens: &[Token]) -> Result<Node, String> {
   let (node, next_tokens) = parse_e(tokens)?;
   expect(Token::End, next_tokens)?;
   Ok(node)
@@ -322,5 +338,58 @@ mod tests {
     );
 
     assert_eq!(parse(&tokens), Ok(ast));
+  }
+
+  #[test]
+  fn throws_meaningful_errors() {
+    let tokens = vec![
+      Token::Number(2),
+      Token::Plus,
+      Token::Number(5),
+      Token::Dash,
+      Token::Number(3),
+    ];
+
+    assert_eq!(
+      parse(&tokens),
+      Err(String::from(
+        "Expected the end token, but Instead, got nothing"
+      ))
+    );
+
+    let tokens = vec![
+      Token::Number(2),
+      Token::Plus,
+      Token::Number(5),
+      Token::Dash,
+      Token::Asterisk,
+      Token::Number(3),
+    ];
+
+    assert_eq!(
+      parse(&tokens),
+      Err(String::from(
+        "Expected a number (positive or negative) or an expression wrapped inside parentheses, but Instead, got '*'"
+      )),
+    );
+
+    let tokens = vec![
+      Token::Number(2),
+      Token::Plus,
+      Token::Number(5),
+      Token::Dash,
+      Token::LeftParenthese,
+      Token::Number(3),
+      Token::Dash,
+      Token::Number(2),
+      Token::End,
+    ];
+
+    assert_eq!(
+      parse(&tokens),
+      Err(String::from(
+        "Expected a closing parenthese ')', but Instead, got the end token"
+      )),
+    );
   }
 }

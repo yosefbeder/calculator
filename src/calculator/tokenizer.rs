@@ -39,6 +39,20 @@ impl Token {
 
     Err(format!("Failed to create a token from {}", c))
   }
+
+  pub fn to_string(&self) -> &'static str {
+    match self {
+      Self::Number(_) => "a number",
+      Self::Plus => "'+'",
+      Self::Dash => "'-'",
+      Self::Asterisk => "'*'",
+      Self::Slash => "'/'",
+      Self::Caret => "'^'",
+      Self::LeftParenthese => "an opening parenthese '('",
+      Self::RightParenthese => "a closing parenthese ')'",
+      Self::End => "the end token",
+    }
+  }
 }
 
 pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
