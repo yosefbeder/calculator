@@ -4,7 +4,7 @@ mod tokenizer;
 pub fn calculate(input: &str) -> Result<i32, String> {
   match tokenizer::tokenize(input) {
     Ok(tokens) => match parser::parse(&tokens) {
-      Ok(tree) => Ok(tree.calc()),
+      Ok(tree) => Ok(tree.calculate()),
       Err(err) => Err(format!("[parser]: {}", err)),
     },
     Err(err) => Err(format!("[tokenizer]: {}", err)),

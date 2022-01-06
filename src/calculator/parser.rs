@@ -30,29 +30,29 @@ pub enum Node {
 }
 
 impl Node {
-  pub fn calc(&self) -> i32 {
+  pub fn calculate(&self) -> i32 {
     match self {
       Node::Single(n) => return *n,
       Node::Unary(op, node) => match op {
         UnaryOperator::Negative => {
-          return node.calc() * -1;
+          return node.calculate() * -1;
         }
       },
       Node::Binary(op, node0, node1) => match op {
         BinaryOperator::Addition => {
-          return node0.calc() + node1.calc();
+          return node0.calculate() + node1.calculate();
         }
         BinaryOperator::Subtraction => {
-          return node0.calc() - node1.calc();
+          return node0.calculate() - node1.calculate();
         }
         BinaryOperator::Division => {
-          return node0.calc() / node1.calc();
+          return node0.calculate() / node1.calculate();
         }
         BinaryOperator::Multiplication => {
-          return node0.calc() * node1.calc();
+          return node0.calculate() * node1.calculate();
         }
         BinaryOperator::Exponentiation => {
-          return node0.calc().pow(node1.calc().try_into().unwrap());
+          return node0.calculate().pow(node1.calculate().try_into().unwrap());
         }
       },
     }
