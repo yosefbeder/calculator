@@ -10,12 +10,10 @@ fn read() -> Result<String, String> {
     }
 }
 
-// evaluates the expression and returns it or binds it to the variable if it's a statement
 fn eval(input: &str) -> Result<f64, String> {
     calculate(input)
 }
 
-// prints the value evaluated by eval whether it's an expression or a number
 fn print(output: Result<f64, String>) {
     match output {
         Ok(n) => println!("{}\n", n),
