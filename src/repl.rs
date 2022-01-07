@@ -23,9 +23,9 @@ fn print(output: Result<f64, String>) {
     }
 }
 
-pub fn run() -> Result<(), String> {
+pub fn run() {
     loop {
-        let input = read()?;
+        let input = read().unwrap();
         let output = eval(&input);
         print(output);
     }
