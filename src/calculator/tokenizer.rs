@@ -69,7 +69,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, String> {
       let mut value = String::new();
 
       while let Some(ch) = left_input.chars().next() {
-        if ch.is_numeric() {
+        if ch.is_numeric() || ch == '.' {
           value.push(ch);
           left_input = &left_input[ch.len_utf8()..];
         } else {
@@ -132,7 +132,7 @@ mod tests {
   #[test]
   fn tokenizes_a_full_example() {
     assert_eq!(
-      tokenize("4 + 3 * 7 - (9 + 8)").unwrap(),
+      tokenize("4 + 3 * 7 - (9 + 8.5)").unwrap(),
       vec![
         Token::Number(4.0),
         Token::Plus,
@@ -143,7 +143,7 @@ mod tests {
         Token::LeftParenthese,
         Token::Number(9.0),
         Token::Plus,
-        Token::Number(8.0),
+        Token::Number(8.5),
         Token::RightParenthese,
         Token::End,
       ],
