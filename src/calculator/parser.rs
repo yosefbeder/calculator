@@ -146,7 +146,6 @@ fn parse_p(tokens: &[Token]) -> Result<(Node, &[Token]), String> {
   if let Some(Token::LeftParenthese) = tokens.iter().next() {
     let (node, next_tokens) = parse_e(&tokens[1..])?;
     let last_tokens = expect(Token::RightParenthese, next_tokens)?;
-    println!("{:?}", last_tokens);
     return Ok((node, last_tokens));
   }
 
