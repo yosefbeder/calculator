@@ -26,16 +26,16 @@ pub enum UnaryOperator {
 pub enum Node {
   Binary(BinaryOperator, Box<Node>, Box<Node>),
   Unary(UnaryOperator, Box<Node>),
-  Single(i32),
+  Single(f64),
 }
 
 impl Node {
-  pub fn calculate(&self) -> i32 {
+  pub fn calculate(&self) -> f64 {
     match self {
       Node::Single(n) => return *n,
       Node::Unary(op, node) => match op {
         UnaryOperator::Negative => {
-          return node.calculate() * -1;
+          return node.calculate() * -1.0;
         }
       },
       Node::Binary(op, node0, node1) => match op {
@@ -52,7 +52,7 @@ impl Node {
           return node0.calculate() * node1.calculate();
         }
         BinaryOperator::Exponentiation => {
-          return node0.calculate().pow(node1.calculate().try_into().unwrap());
+          return node0.calculate().powf(node1.calculate());
         }
       },
     }
@@ -186,66 +186,71 @@ mod tests {
   use super::*;
   #[test]
   fn parses_p() {
-    let tokens = vec![Token::Number(3), Token::End];
+    let tokens = vec![Token::Number(3.0), Token::End];
     assert_eq!(
       parse(&tokens),
-      Ok(Node::Single(3)),
+      Ok(Node::Single(3.0)),
       "Parses P (single digits)"
     );
 
-    let tokens = vec![Token::Dash, Token::Number(3), Token::End];
+    let tokens = vec![Token::Dash, Token::Number(3.0), Token::End];
     assert_eq!(
       parse(&tokens),
       Ok(Node::Unary(
         UnaryOperator::Negative,
-        Box::new(Node::Single(3))
+        Box::new(Node::Single(3.0))
       )),
       "Parses P (negative numbers)"
     );
 
     let tokens = vec![
       Token::LeftParenthese,
-      Token::Number(3),
+      Token::Number(3.0),
       Token::RightParenthese,
       Token::End,
     ];
     assert_eq!(
       parse(&tokens),
-      Ok(Node::Single(3)),
+      Ok(Node::Single(3.0)),
       "Parses P (expressions wrapped with parentheses)"
     );
   }
 
   #[test]
   fn parses_f() {
-    let tokens = vec![Token::Number(3), Token::Caret, Token::Number(2), Token::End];
-    assert_eq!(
-      parse(&tokens),
-      Ok(Node::Binary(
-        BinaryOperator::Exponentiation,
-        Box::new(Node::Single(3)),
-        Box::new(Node::Single(2))
-      )),
-      "Parses F (operands are single digits)"
-    );
-
     let tokens = vec![
-      Token::Number(3),
+      Token::Number(3.0),
       Token::Caret,
-      Token::Number(2),
-      Token::Caret,
-      Token::Number(2),
+      Token::Number(2.0),
       Token::End,
     ];
     assert_eq!(
       parse(&tokens),
       Ok(Node::Binary(
         BinaryOperator::Exponentiation,
-        Box::new(Node::Single(3)),
+        Box::new(Node::Single(3.0)),
+        Box::new(Node::Single(2.0))
+      )),
+      "Parses F (operands are single digits)"
+    );
+
+    let tokens = vec![
+      Token::Number(3.0),
+      Token::Caret,
+      Token::Number(2.0),
+      Token::Caret,
+      Token::Number(2.0),
+      Token::End,
+    ];
+    assert_eq!(
+      parse(&tokens),
+      Ok(Node::Binary(
+        BinaryOperator::Exponentiation,
+        Box::new(Node::Single(3.0)),
         Box::new(Node::Binary(
           BinaryOperator::Exponentiation,
-          Box::new(Node::Single(2)),
-          Box::new(Node::Single(2))
+          Box::new(Node::Single(2.0)),
+          Box::new(Node::Single(2.0))
         )),
       )),
       "Parses F (operands are F too)"
@@ -255,11 +260,11 @@ mod tests {
   #[test]
   fn parses_t() {
     let tokens = vec![
-      Token::Number(2),
+      Token::Number(2.0),
       Token::Asterisk,
-      Token::Number(5),
+      Token::Number(5.0),
       Token::Slash,
-      Token::Number(3),
+      Token::Number(3.0),
       Token::End,
     ];
 
@@ -269,10 +274,10 @@ mod tests {
         BinaryOperator::Division,
         Box::new(Node::Binary(
           BinaryOperator::Multiplication,
-          Box::new(Node::Single(2)),
-          Box::new(Node::Single(5)),
+          Box::new(Node::Single(2.0)),
+          Box::new(Node::Single(5.0)),
         )),
-        Box::new(Node::Single(3)),
+        Box::new(Node::Single(3.0)),
       )),
       "Parses T (operands aren't single nodes)"
     );
@@ -281,11 +286,11 @@ mod tests {
   #[test]
   fn parses_e() {
     let tokens = vec![
-      Token::Number(2),
+      Token::Number(2.0),
       Token::Plus,
-      Token::Number(5),
+      Token::Number(5.0),
       Token::Dash,
-      Token::Number(3),
+      Token::Number(3.0),
       Token::End,
     ];
 
@@ -295,10 +300,10 @@ mod tests {
         BinaryOperator::Subtraction,
         Box::new(Node::Binary(
           BinaryOperator::Addition,
-          Box::new(Node::Single(2)),
-          Box::new(Node::Single(5)),
+          Box::new(Node::Single(2.0)),
+          Box::new(Node::Single(5.0)),
         )),
-        Box::new(Node::Single(3)),
+        Box::new(Node::Single(3.0)),
       )),
       "Parses E (operands aren't single nodes)"
     );
@@ -309,31 +314,31 @@ mod tests {
     // -3 + (7 * 2) ^ 2
     let tokens = vec![
       Token::Dash,
-      Token::Number(3),
+      Token::Number(3.0),
       Token::Plus,
       Token::LeftParenthese,
-      Token::Number(7),
+      Token::Number(7.0),
       Token::Asterisk,
-      Token::Number(2),
+      Token::Number(2.0),
       Token::RightParenthese,
       Token::Caret,
-      Token::Number(2),
+      Token::Number(2.0),
       Token::End,
     ];
     let ast = Node::Binary(
       BinaryOperator::Addition,
       Box::new(Node::Unary(
         UnaryOperator::Negative,
-        Box::new(Node::Single(3)),
+        Box::new(Node::Single(3.0)),
       )),
       Box::new(Node::Binary(
         BinaryOperator::Exponentiation,
         Box::new(Node::Binary(
           BinaryOperator::Multiplication,
-          Box::new(Node::Single(7)),
-          Box::new(Node::Single(2)),
+          Box::new(Node::Single(7.0)),
+          Box::new(Node::Single(2.0)),
         )),
-        Box::new(Node::Single(2)),
+        Box::new(Node::Single(2.0)),
       )),
     );
 
@@ -343,11 +348,11 @@ mod tests {
   #[test]
   fn throws_meaningful_errors() {
     let tokens = vec![
-      Token::Number(2),
+      Token::Number(2.0),
       Token::Plus,
-      Token::Number(5),
+      Token::Number(5.0),
       Token::Dash,
-      Token::Number(3),
+      Token::Number(3.0),
     ];
 
     assert_eq!(
@@ -358,12 +363,12 @@ mod tests {
     );
 
     let tokens = vec![
-      Token::Number(2),
+      Token::Number(2.0),
       Token::Plus,
-      Token::Number(5),
+      Token::Number(5.0),
       Token::Dash,
       Token::Asterisk,
-      Token::Number(3),
+      Token::Number(3.0),
     ];
 
     assert_eq!(
@@ -374,14 +379,14 @@ mod tests {
     );
 
     let tokens = vec![
-      Token::Number(2),
+      Token::Number(2.0),
       Token::Plus,
-      Token::Number(5),
+      Token::Number(5.0),
       Token::Dash,
       Token::LeftParenthese,
-      Token::Number(3),
+      Token::Number(3.0),
       Token::Dash,
-      Token::Number(2),
+      Token::Number(2.0),
       Token::End,
     ];
 

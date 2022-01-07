@@ -2,7 +2,7 @@ const SPECIAL_CHARACTERS: [char; 7] = ['(', ')', '+', '-', '*', '/', '^'];
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
-  Number(i32),
+  Number(f64),
   Plus,
   Dash,
   Asterisk,
@@ -108,7 +108,7 @@ mod tests {
   fn tokenizes_numbers() {
     assert_eq!(
       tokenize("432").unwrap(),
-      vec![Token::Number(432), Token::End],
+      vec![Token::Number(432.0), Token::End],
       "Tokenizes numbers"
     );
   }
@@ -134,16 +134,16 @@ mod tests {
     assert_eq!(
       tokenize("4 + 3 * 7 - (9 + 8)").unwrap(),
       vec![
-        Token::Number(4),
+        Token::Number(4.0),
         Token::Plus,
-        Token::Number(3),
+        Token::Number(3.0),
         Token::Asterisk,
-        Token::Number(7),
+        Token::Number(7.0),
         Token::Dash,
         Token::LeftParenthese,
-        Token::Number(9),
+        Token::Number(9.0),
         Token::Plus,
-        Token::Number(8),
+        Token::Number(8.0),
         Token::RightParenthese,
         Token::End,
       ],

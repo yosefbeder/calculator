@@ -1,7 +1,7 @@
 mod parser;
 mod tokenizer;
 
-pub fn calculate(input: &str) -> Result<i32, String> {
+pub fn calculate(input: &str) -> Result<f64, String> {
   match tokenizer::tokenize(input) {
     Ok(tokens) => match parser::parse(&tokens) {
       Ok(tree) => Ok(tree.calculate()),
@@ -17,9 +17,15 @@ mod tests {
 
   #[test]
   fn calculate_tests() {
-    assert_eq!(calculate("-3 + 7 * 2 ^ 2"), Ok(25));
-    assert_eq!(calculate("-3 + (7 * 2) ^ 2"), Ok(193));
-    assert_eq!(calculate("-(7 * 2)"), Ok(-14));
+    assert_eq!(calculate("-3 + 7 * 2 ^ 2"), Ok(25.0));
+    assert_eq!(calculate("-3 + (7 * 2) ^ 2"), Ok(193.0));
+    assert_eq!(calculate("-(7 * 2)"), Ok(-14.0));
+    assert_eq!(calculate("1 / 2"), Ok(0.5));
+    assert_eq!(calculate("-3 + 7 * 2 ^ 2 / 60"), Ok(-2.533333333333333));
+    assert_eq!(
+      calculate("70 - 23 * 32 ^ 2 / 90 + (5 / 3) ^ 2"),
+      Ok(-188.9111111111111)
+    );
   }
 
   #[test]
