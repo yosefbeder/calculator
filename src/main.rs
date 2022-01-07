@@ -1,3 +1,5 @@
+use calculator::repl;
+
 fn main() {
-    println!("Hello, world!");
+    repl::run().unwrap();
 }
