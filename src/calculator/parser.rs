@@ -135,7 +135,7 @@ fn parse_p(tokens: &[Token]) -> Result<(Node, &[Token]), String> {
   }
 
   if let Some(Token::Dash) = tokens.iter().next() {
-    let (node, next_tokens) = parse_p(&tokens[1..])?;
+    let (node, next_tokens) = parse_f(&tokens[1..])?;
 
     return Ok((
       Node::Unary(UnaryOperator::Negative, Box::new(node)),
@@ -310,7 +310,7 @@ mod tests {
 
   #[test]
   fn parses_a_full_example() {
-    // -3 + (7 * 2) ^ 2
+    // -3 + (7 * 2) ^ 2 + - 7 ^ 2
     let tokens = vec![
       Token::Dash,
       Token::Number(3.0),
@@ -322,22 +322,38 @@ mod tests {
       Token::RightParenthese,
       Token::Caret,
       Token::Number(2.0),
+      Token::Plus,
+      Token::Dash,
+      Token::Number(7.0),
+      Token::Caret,
+      Token::Number(2.0),
       Token::End,
     ];
     let ast = Node::Binary(
       BinaryOperator::Addition,
+      Box::new(Node::Binary(
+        BinaryOperator::Addition,
+        Box::new(Node::Unary(
+          UnaryOperator::Negative,
+          Box::new(Node::Single(3.0)),
+        )),
+        Box::new(Node::Binary(
+          BinaryOperator::Exponentiation,
+          Box::new(Node::Binary(
+            BinaryOperator::Multiplication,
+            Box::new(Node::Single(7.0)),
+            Box::new(Node::Single(2.0)),
+          )),
+          Box::new(Node::Single(2.0)),
+        )),
+      )),
       Box::new(Node::Unary(
         UnaryOperator::Negative,
-        Box::new(Node::Single(3.0)),
-      )),
-      Box::new(Node::Binary(
-        BinaryOperator::Exponentiation,
         Box::new(Node::Binary(
-          BinaryOperator::Multiplication,
+          BinaryOperator::Exponentiation,
           Box::new(Node::Single(7.0)),
           Box::new(Node::Single(2.0)),
         )),
-        Box::new(Node::Single(2.0)),
       )),
     );
 
